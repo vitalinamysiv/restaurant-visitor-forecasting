@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 
 def create_daily_dataset(
@@ -6,20 +7,28 @@ def create_daily_dataset(
     output_path: str
 ):
 
-    df = pd.read_csv(input_path)
+    # читаем CSV с правильным разделителем
+    df = pd.read_csv(
+        input_path,
+        sep="|"
+    )
 
 
+    # переводим дату
     df["transaction_date"] = pd.to_datetime(
         df["transaction_date"]
     )
 
 
+    # считаем выручку каждой покупки
     df["revenue"] = (
         df["transaction_qty"]
         *
         df["unit_price"]
     )
 
+
+    # агрегируем день + ресторан
 
     daily = (
         df
@@ -43,6 +52,8 @@ def create_daily_dataset(
     )
 
 
+    # переименовываем под требования задания
+
     daily = daily.rename(
         columns={
             "transaction_date": "date",
@@ -50,6 +61,16 @@ def create_daily_dataset(
         }
     )
 
+
+    # создаем папку
+
+    os.makedirs(
+        "data/processed",
+        exist_ok=True
+    )
+
+
+    # сохраняем
 
     daily.to_csv(
         output_path,
@@ -60,6 +81,6 @@ def create_daily_dataset(
 if __name__ == "__main__":
 
     create_daily_dataset(
-        "coffee_shop_sales.csv",
+        "coffee-shop-sales-revenue.csv",
         "data/processed/restaurant_daily.csv"
     )
