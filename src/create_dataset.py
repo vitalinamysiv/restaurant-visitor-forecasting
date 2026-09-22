@@ -7,62 +7,50 @@ def create_daily_dataset(
     output_path: str
 ):
 
-    # читаем CSV
+    # загрузка данных
+
     df = pd.read_csv(
         input_path,
-        sep="|"
+        parse_dates=["Date"]
     )
 
 
-    # переводим дату
-    df["transaction_date"] = pd.to_datetime(
-        df["transaction_date"]
-    )
+    # оставляем только нужные поля
+
+    df = df[
+        [
+            "Date",
+            "Store",
+            "Customers",
+            "Sales",
+            "Open"
+        ]
+    ]
 
 
-    # считаем выручку каждой покупки
-    df["revenue"] = (
-        df["transaction_qty"]
-        *
-        df["unit_price"]
-    )
+    # переименовываем под задачу
 
-
-    # агрегируем день + ресторан
-
-    daily = (
-        df
-        .groupby(
-            [
-                "transaction_date",
-                "store_id"
-            ]
-        )
-        .agg(
-            guests=(
-                "transaction_id",
-                "nunique"
-            ),
-            revenue=(
-                "revenue",
-                "sum"
-            )
-        )
-        .reset_index()
-    )
-
-
-    # переименовываем под требования задания
-
-    daily = daily.rename(
+    df = df.rename(
         columns={
-            "transaction_date": "date",
-            "store_id": "restaurant_id"
+            "Date": "date",
+            "Store": "restaurant_id",
+            "Customers": "guests",
+            "Sales": "revenue"
         }
     )
 
 
-    # создаем папку
+    # сохраняем только открытые точки
+
+    df = df[
+        df["Open"] == 1
+    ]
+
+
+    df = df.drop(
+        columns=["Open"]
+    )
+
 
     os.makedirs(
         "data/processed",
@@ -70,9 +58,7 @@ def create_daily_dataset(
     )
 
 
-    # сохраняем
-
-    daily.to_csv(
+    df.to_csv(
         output_path,
         index=False
     )
@@ -81,6 +67,6 @@ def create_daily_dataset(
 if __name__ == "__main__":
 
     create_daily_dataset(
-        "coffee-shop-sales-revenue.csv",
+        "train.csv",
         "data/processed/restaurant_daily.csv"
     )
