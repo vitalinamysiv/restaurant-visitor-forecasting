@@ -7,7 +7,7 @@ def create_daily_dataset(
     output_path: str
 ):
 
-    # читаем CSV с правильным разделителем
+    # читаем CSV
     df = pd.read_csv(
         input_path,
         sep="|"
