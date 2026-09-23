@@ -67,6 +67,6 @@ def create_daily_dataset(
 if __name__ == "__main__":
 
     create_daily_dataset(
-        "train.csv",
+        "data/raw/train.csv",
         "data/processed/restaurant_daily.csv"
     )
