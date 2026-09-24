@@ -49,13 +49,16 @@ predict.py
 
 ## Подготовка данных
 
-Выполнены:
+Исходный датасет:
+Rossmann Store Sales
 
-- преобразование данных к формату date-restaurant_id-guests-revenue;
-- удаление закрытых точек;
-- генерация временных признаков.
+Для подготовки данных:
 
----
+python src/create_dataset.py
+
+Скрипт создаёт:
+
+data/processed/restaurant_daily.csv
 
 ## Feature engineering
 
