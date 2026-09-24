@@ -31,19 +31,29 @@
 ## Структура проекта
 
 
-src/
-├── create_dataset.py
-├── features.py
-├── validation.py
-├── model.py
+restaurant-visitor-forecasting/
 
-notebooks/
-├── 00_prepare_data.ipynb
-├── 01_eda.ipynb
-└── 02_modeling.ipynb
+├── data/
+│ ├── raw/
+│ └── processed/
 
-predict.py
+├── models/
+│ └── catboost_model.pkl
 
+├── notebooks/
+│ ├── 00_prepare_data.ipynb
+│ ├── 01_eda.ipynb
+│ └── 02_modeling.ipynb
+
+├── src/
+│ ├── create_dataset.py
+│ ├── features.py
+│ ├── validation.py
+│ └── model.py
+
+├── predict.py
+├── requirements.txt
+└── README.md
 
 ---
 
