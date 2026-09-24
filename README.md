@@ -98,24 +98,18 @@ Validation:
 
 ---
 
-## Запуск прогноза
+## Запуск проекта
 
-Установка зависимостей:
-
+Установить зависимости:
 
 pip install -r requirements.txt
 
 
-Запуск:
+Подготовить данные:
 
+python src/create_dataset.py
+
+
+Запустить прогноз:
 
 python predict.py --date 2015-07-01 --restaurant 1
-
-
-Пример результата:
-
-
-date prediction
-2015-07-01 602
-2015-07-02 601
-...
