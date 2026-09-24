@@ -85,8 +85,9 @@ restaurant-visitor-forecasting/
 
 Подготовка данных выполняется скриптом:
 
-```bash
+
 python src/create_dataset.py
+
 
 Скрипт:
 
