@@ -6,18 +6,20 @@ def create_daily_dataset(
     input_path: str,
     output_path: str
 ) -> None:
-    """
-    Create a daily dataset for restaurant visitor forecasting.
-
-    Parameters
-    ----------
-    input_path : str
-        Path to the raw Rossmann train.csv.
-    output_path : str
-        Path where the processed dataset will be saved.
-    """
 
     print("Загрузка данных...")
+
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(
+            f"""
+Не найден файл: {input_path}
+
+Скачайте датасет Rossmann Store Sales
+и положите train.csv в:
+
+data/raw/train.csv
+"""
+        )
 
     df = pd.read_csv(
         input_path,
@@ -36,7 +38,7 @@ def create_daily_dataset(
     # Оставляем только дни, когда точка была открыта
     df = df[df["Open"] == 1].copy()
 
-    # Приводим названия к схеме нашего проекта
+    # Приводим названия к схеме проекта
     df = df.rename(
         columns={
             "Date": "date",
@@ -46,7 +48,9 @@ def create_daily_dataset(
         }
     )
 
-    df = df.drop(columns=["Open"])
+    df = df.drop(
+        columns=["Open"]
+    )
 
     # Создаём папку для обработанных данных
     os.makedirs(
@@ -70,7 +74,9 @@ def create_daily_dataset(
     print("Сохранено:", output_path)
 
 
+
 if __name__ == "__main__":
+
     create_daily_dataset(
         "data/raw/train.csv",
         "data/processed/restaurant_daily.csv"
