@@ -82,15 +82,8 @@ def predict(
                 f"Проверьте функцию make_features в src/features.py."
             )
 
-        # Заполняем NaN медианой по последним 60 дням
+        # Молча заполняем NaN медианой по последним 60 дням
         if latest[MODEL_FEATURES].isna().any(axis=1).iloc[0]:
-            nan_cols = latest[MODEL_FEATURES].columns[
-                latest[MODEL_FEATURES].isna().any()
-            ].tolist()
-            print(
-                f"[WARN] Для {current_date.date()} отсутствуют значения "
-                f"признаков: {nan_cols}. Заполняем медианой по истории."
-            )
             recent = temp_features[MODEL_FEATURES].tail(60)
             fill_values = recent.median(numeric_only=True)
             latest = latest.copy()
