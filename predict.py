@@ -1,6 +1,7 @@
 import argparse
 
 import pandas as pd
+import numpy as np
 
 from src.features import make_features, FEATURES
 from src.model import load_model
@@ -29,14 +30,37 @@ def predict(
             f"Ресторан {restaurant_id} не найден в данных"
         )
 
+    # Сортируем по дате — это критично для лагов
+    df = df.sort_values("date").reset_index(drop=True)
+
+    # Проверяем, что до даты прогноза вообще есть данные
+    current_date = pd.to_datetime(start_date)
+    history_before = df[df["date"] < current_date]
+
+    if history_before.empty:
+        raise ValueError(
+            f"Нет данных до {current_date.date()} для ресторана {restaurant_id}. "
+            f"Минимальная дата в данных: {df['date'].min().date()}"
+        )
+
+    # Проверяем, что период истории покрывает хотя бы 28 календарных дней
+    days_of_history = (history_before["date"].max() - history_before["date"].min()).days
+    if days_of_history < 28:
+        raise ValueError(
+            f"Недостаточно истории для прогноза на {current_date.date()}. "
+            f"Доступно {days_of_history} календарных дней, нужно минимум 28."
+        )
+
     model = load_model(model_path)
 
     predictions = []
-    current_date = pd.to_datetime(start_date)
 
     # Последняя известная выручка — прокси для будущей,
     # так как будущая выручка неизвестна.
     last_revenue = float(df["revenue"].iloc[-1])
+
+    # Заполняем возможные пропуски в revenue (на всякий случай)
+    df["revenue"] = df["revenue"].fillna(df["revenue"].median())
 
     for _ in range(horizon):
         future_row = pd.DataFrame(
@@ -45,8 +69,7 @@ def predict(
                 "restaurant_id": [restaurant_id],
                 "revenue": [last_revenue],
                 # guests — то, что мы прогнозируем.
-                # Подставим NaN и заполним после make_features.
-                "guests": [float("nan")],
+                "guests": [np.nan],
                 "is_state_holiday": [0],
                 "is_school_holiday": [0],
                 "is_promo": [0],
@@ -62,11 +85,27 @@ def predict(
 
         latest = temp_features.tail(1)
 
+        # Вместо падения при NaN — заполняем пропуски
+        # медианой по последним доступным значениям признака.
         if latest[FEATURES].isna().any(axis=1).iloc[0]:
-            raise ValueError(
-                f"Недостаточно истории для прогноза на {current_date.date()}. "
-                f"Проверьте, что в данных есть минимум 28 дней до даты прогноза."
+            nan_cols = latest[FEATURES].columns[
+                latest[FEATURES].isna().any()
+            ].tolist()
+
+            print(
+                f"[WARN] Для {current_date.date()} отсутствуют значения "
+                f"признаков: {nan_cols}. Заполняем медианой по истории."
             )
+
+            # Заполняем NaN медианой по последним 60 дням истории
+            recent = temp_features[FEATURES].tail(60)
+            fill_values = recent.median(numeric_only=True)
+
+            latest = latest.copy()
+            latest[FEATURES] = latest[FEATURES].fillna(fill_values)
+
+            # Если и медиана NaN (все значения пропущены) — ставим 0
+            latest[FEATURES] = latest[FEATURES].fillna(0)
 
         X = latest[FEATURES]
 
