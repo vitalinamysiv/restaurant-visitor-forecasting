@@ -1,22 +1,24 @@
 import os
 import pandas as pd
 
+from src.features import is_state_holiday, is_school_holiday
+
 
 def create_daily_dataset(
     input_path: str,
     output_path: str
 ) -> None:
     """
-    Prepare daily dataset for restaurant visitor forecasting
-    from Rossmann Store Sales.
+    Готовит дневной датасет для прогнозирования потока посетителей
+    ресторана на основе Rossmann Store Sales.
 
-    Steps:
-    - load raw data with required columns;
-    - mark closed days and anomalies;
-    - keep only open days without anomalies;
-    - rename columns to project schema;
-    - restore calendar explicitly (reindex by full date range);
-    - save processed dataset.
+    Шаги:
+    - загрузка сырых данных с нужными колонками;
+    - пометка закрытых дней и аномалий;
+    - оставляем только открытые дни без аномалий;
+    - переименование колонок в схему проекта;
+    - явное восстановление календаря (reindex по полному диапазону дат);
+    - сохранение обработанного датасета.
     """
     print("Загрузка данных...")
 
@@ -68,14 +70,15 @@ def create_daily_dataset(
         }
     )
 
-    # StateHoliday может быть числом (0) или строкой ('a', 'b', 'c')
-    df["StateHoliday"] = df["StateHoliday"].astype(str)
-    df["is_state_holiday"] = (
-        df["StateHoliday"].isin(["a", "b", "c"])
-    ).astype(int)
-    df["is_school_holiday"] = df["SchoolHoliday"].astype(int)
+    # Промо — простой бинарный флаг из исходных данных
     df["is_promo"] = df["Promo"].astype(int)
 
+    # Праздники вычисляем по календарю РФ через функции из features.py,
+    # чтобы обучение и инференс использовали одну и ту же логику.
+    df["is_state_holiday"] = df["date"].apply(is_state_holiday)
+    df["is_school_holiday"] = df["date"].apply(is_school_holiday)
+
+    # Удаляем уже ненужные исходные колонки
     df = df.drop(
         columns=[
             "Open",
@@ -114,6 +117,13 @@ def create_daily_dataset(
     print(f"Пропусков в guests: {n_missing_guests}")
     print(f"Пропусков в revenue: {n_missing_revenue}")
 
+    # Заполняем праздники и промо для восстановленных дней:
+    # даты известны, поэтому праздники пересчитываем по календарю;
+    # для промо и school holiday ставим 0, так как история отсутствует.
+    df["is_state_holiday"] = df["date"].apply(is_state_holiday)
+    df["is_school_holiday"] = df["date"].apply(is_school_holiday)
+    df["is_promo"] = df["is_promo"].fillna(0).astype(int)
+
     # Удаляем строки с пропусками выгрузки (не закрытые дни,
     # а именно отсутствующие наблюдения). Логируем, сколько удалили.
     before = len(df)
@@ -122,10 +132,6 @@ def create_daily_dataset(
     ).reset_index(drop=True)
     after = len(df)
     print(f"Удалено строк с пропусками выгрузки: {before - after}")
-
-    # Флаги праздников и промо заполняем 0 там, где NaN
-    for col in ["is_state_holiday", "is_school_holiday", "is_promo"]:
-        df[col] = df[col].fillna(0).astype(int)
 
     df = df.sort_values(
         ["restaurant_id", "date"]
