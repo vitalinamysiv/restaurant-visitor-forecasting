@@ -3,20 +3,9 @@ import argparse
 import pandas as pd
 import numpy as np
 
-from src.features import make_features, FEATURES
+from src.features import make_features, MODEL_FEATURES
 from src.model import load_model
-# predict.py
 
-# Порядок признаков, который ожидает обученная модель CatBoost.
-# Получен через model.feature_names_
-MODEL_FEATURES = [
-    'restaurant_id', 'revenue', 'day_of_week', 'month', 'day_of_month',
-    'is_weekend',
-    'is_state_holiday',   
-    'is_school_holiday',    
-    'lag_1', 'lag_7', 'lag_14',
-    'rolling_mean_7', 'rolling_mean_28',
-]
 
 def predict(
     start_date: str,
@@ -76,7 +65,6 @@ def predict(
         temp_features = make_features(temp_df)
         latest = temp_features.tail(1)
 
-        # Проверяем, что все признаки модели присутствуют
         missing = [f for f in MODEL_FEATURES if f not in latest.columns]
         if missing:
             raise ValueError(
@@ -84,7 +72,6 @@ def predict(
                 f"Проверьте функцию make_features в src/features.py."
             )
 
-        # Молча заполняем NaN медианой по последним 60 дням
         if latest[MODEL_FEATURES].isna().any(axis=1).iloc[0]:
             recent = temp_features[MODEL_FEATURES].tail(60)
             fill_values = recent.median(numeric_only=True)
@@ -92,7 +79,6 @@ def predict(
             latest[MODEL_FEATURES] = latest[MODEL_FEATURES].fillna(fill_values)
             latest[MODEL_FEATURES] = latest[MODEL_FEATURES].fillna(0)
 
-        # Приводим порядок колонок к порядку модели
         X = latest[MODEL_FEATURES]
 
         prediction = float(model.predict(X)[0])
@@ -105,7 +91,6 @@ def predict(
             }
         )
 
-        # Добавляем прогноз как историю для следующего шага
         df = pd.concat(
             [
                 df,
