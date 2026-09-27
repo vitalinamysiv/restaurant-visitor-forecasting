@@ -5,16 +5,18 @@ import numpy as np
 
 from src.features import make_features, FEATURES
 from src.model import load_model
-
+# predict.py
 
 # Порядок признаков, который ожидает обученная модель CatBoost.
-# Получен через: model.feature_names_
+# Получен через model.feature_names_
 MODEL_FEATURES = [
     'restaurant_id', 'revenue', 'day_of_week', 'month', 'day_of_month',
-    'is_weekend', 'lag_1', 'lag_7', 'lag_14',
+    'is_weekend',
+    'is_state_holiday',   
+    'is_school_holiday',    
+    'lag_1', 'lag_7', 'lag_14',
     'rolling_mean_7', 'rolling_mean_28',
 ]
-
 
 def predict(
     start_date: str,
