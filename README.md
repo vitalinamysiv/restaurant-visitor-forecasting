@@ -133,7 +133,7 @@ python -m src.model
 python predict.py --date 2015-07-01 --restaurant 1
 ```
 
-Требуется **Python 3.10+**.
+Требуется **Python 3.11+**.
 
 ### Вариант 2: Google Colab (без установки)
 
