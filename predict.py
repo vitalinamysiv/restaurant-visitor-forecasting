@@ -63,8 +63,8 @@ def predict(
                 "restaurant_id": [restaurant_id],
                 "revenue": [last_revenue],
                 "guests": [np.nan],
-                "is_state_holiday": [future_state_holiday],    # ← теперь не 0
-                "is_school_holiday": [future_school_holiday],  # ← теперь не 0
+                "is_state_holiday": [future_state_holiday],    
+                "is_school_holiday": [future_school_holiday],  
                 "is_promo": [0],
             }
         )
