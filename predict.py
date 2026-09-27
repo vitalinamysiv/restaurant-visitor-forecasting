@@ -3,7 +3,12 @@ import argparse
 import pandas as pd
 import numpy as np
 
-from src.features import make_features, MODEL_FEATURES
+from src.features import (
+    make_features,
+    MODEL_FEATURES,
+    is_state_holiday,   
+    is_school_holiday,
+)
 from src.model import load_model
 
 
@@ -14,10 +19,7 @@ def predict(
     data_path: str = "data/processed/restaurant_daily.csv",
     horizon: int = 7,
 ) -> pd.DataFrame:
-    """
-    Forecast guests for the next `horizon` days for a given restaurant.
-    Uses the same `make_features` as training to avoid train/inference skew.
-    """
+   
     df = pd.read_csv(data_path, parse_dates=["date"])
     df = df[df["restaurant_id"] == restaurant_id].copy()
 
@@ -45,18 +47,24 @@ def predict(
     model = load_model(model_path)
 
     predictions = []
-    last_revenue = float(df["revenue"].iloc[-1])
+
+
     df["revenue"] = df["revenue"].fillna(df["revenue"].median())
+    last_revenue = float(df["revenue"].iloc[-1])
 
     for _ in range(horizon):
+    
+        future_state_holiday = is_state_holiday(current_date)
+        future_school_holiday = is_school_holiday(current_date)
+
         future_row = pd.DataFrame(
             {
                 "date": [current_date],
                 "restaurant_id": [restaurant_id],
                 "revenue": [last_revenue],
                 "guests": [np.nan],
-                "is_state_holiday": [0],
-                "is_school_holiday": [0],
+                "is_state_holiday": [future_state_holiday],    # ← теперь не 0
+                "is_school_holiday": [future_school_holiday],  # ← теперь не 0
                 "is_promo": [0],
             }
         )
@@ -91,6 +99,7 @@ def predict(
             }
         )
 
+
         df = pd.concat(
             [
                 df,
@@ -100,8 +109,8 @@ def predict(
                         "restaurant_id": [restaurant_id],
                         "revenue": [last_revenue],
                         "guests": [prediction],
-                        "is_state_holiday": [0],
-                        "is_school_holiday": [0],
+                        "is_state_holiday": [future_state_holiday],
+                        "is_school_holiday": [future_school_holiday],
                         "is_promo": [0],
                     }
                 ),
