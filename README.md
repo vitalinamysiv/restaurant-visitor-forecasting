@@ -43,7 +43,10 @@
 | `Date`           | `date`            |
 
 > Исходный датасет **не хранится в репозитории** из-за размера (~38 МБ).
-> Скачайте `train.csv` с Kaggle и положите в `data/raw/train.csv`.
+> В Google Colab он **скачивается автоматически** через bootstrap-ячейку.
+> При локальном запуске скачайте `train.csv` с
+> [Kaggle](https://www.kaggle.com/competitions/rossmann-store-sales/data)
+> и положите в `data/raw/train.csv`.
 
 ### Особенность данных Rossmann
 
@@ -108,38 +111,71 @@ restaurant-visitor-forecasting/
 
 ## Как запустить
 
-### 1. Установка зависимостей
+### Вариант 1: Локально
 
 ```bash
+# 1. Клонируйте репозиторий
+git clone https://github.com/vitalinamysiv/restaurant-visitor-forecasting.git
+cd restaurant-visitor-forecasting
+
+# 2. Установите зависимости
 pip install -r requirements.txt
+
+# 3. Скачайте train.csv с Kaggle
+#    https://www.kaggle.com/competitions/rossmann-store-sales/data
+#    и положите в data/raw/train.csv
+
+# 4. Подготовьте данные и обучите модель
+python -m src.create_dataset
+python -m src.model
+
+# 5. Получите прогноз
+python predict.py --date 2015-07-01 --restaurant 1
 ```
 
 Требуется **Python 3.10+**.
 
-### 2. Подготовка данных
+### Вариант 2: Google Colab (без установки)
 
-Скачайте `train.csv` с [Kaggle](https://www.kaggle.com/competitions/rossmann-store-sales/data)
-и положите в `data/raw/train.csv`. Затем:
+Все три ноутбука содержат **bootstrap-ячейку** в самом начале. Она
+автоматически:
 
-```bash
-python -m src.create_dataset
-```
+1. Клонирует репозиторий с GitHub.
+2. Устанавливает зависимости из `requirements.txt`.
+3. Скачивает исходный датасет `train.csv` (~38 МБ) с Google Drive.
+4. Генерирует `data/processed/restaurant_daily.csv`
+   через `src/create_dataset.py`.
 
-Результат: `data/processed/restaurant_daily.csv`.
+**Никаких ручных действий не требуется** — просто откройте любой
+ноутбук в Colab и последовательно выполните ячейки.
 
-### 3. Обучение модели
+### Быстрый старт в Colab
 
-```bash
-python -m src.model
-```
+1. Нажмите **«Open in Colab»** на нужном ноутбуке.
+2. Выполните первую ячейку (bootstrap) — она подготовит окружение.
+3. Дальше выполняйте остальные ячейки по порядку.
 
-Скрипт обучает `CatBoostRegressor` на train-периоде, валидирует на отложенном периоде и сохраняет модель в `models/catboost_model.pkl`.
+### Что делать, если bootstrap не работает
 
-### 4. Прогноз
+Если Google Drive временно недоступен или файл скачивается с ошибкой,
+скачайте `train.csv` вручную с
+[Kaggle](https://www.kaggle.com/competitions/rossmann-store-sales/data) и
+положите его в `data/raw/train.csv`, затем перезапустите bootstrap.
 
-```bash
-python predict.py --date 2015-07-01 --restaurant 1
-```
+### Почему данные не хранятся в репозитории
+
+Датасет Rossmann (~38 МБ) не хранится в git, чтобы не раздувать
+репозиторий. Модель (`catboost_model.pkl`) также не хранится — она
+обучается заново при запуске `02_modeling.ipynb`.
+
+### Аргументы `predict.py`
+
+| Аргумент       | Описание                          | По умолчанию                            |
+|----------------|-----------------------------------|-----------------------------------------|
+| `--date`       | дата начала прогноза (YYYY-MM-DD) | обязательный                            |
+| `--restaurant` | ID ресторана                      | обязательный                            |
+| `--model`      | путь к модели                     | `models/catboost_model.pkl`             |
+| `--data`       | путь к данным                     | `data/processed/restaurant_daily.csv`   |
 
 **Пример вывода:**
 
@@ -153,15 +189,6 @@ python predict.py --date 2015-07-01 --restaurant 1
  2015-07-06         595
  2015-07-07         595
 ```
-
-### Аргументы `predict.py`
-
-| Аргумент       | Описание                          | По умолчанию                            |
-|----------------|-----------------------------------|-----------------------------------------|
-| `--date`       | дата начала прогноза (YYYY-MM-DD) | обязательный                            |
-| `--restaurant` | ID ресторана                      | обязательный                            |
-| `--model`      | путь к модели                     | `models/catboost_model.pkl`             |
-| `--data`       | путь к данным                     | `data/processed/restaurant_daily.csv`   |
 
 ---
 
@@ -269,6 +296,14 @@ MODEL_FEATURES = [
   потока (для точки на 200 гостей и на 2000 гостей ошибка в 50 человек —
   это разные вещи). Даёт удобную бизнес-метрику: «модель ошибается на 7%
   от суточного потока».
+
+- **Почему не RMSE:** RMSE сильнее штрафует за большие ошибки, что в нашей задаче
+  нежелательно — новогодние и праздничные всплески являются реальными событиями,
+  и модель не должна «бояться» на них ошибаться сильнее обычного.
+
+- **Почему не R²:** R² плохо интерпретируется в единицах бизнеса и чувствителен
+  к масштабу. Для задачи планирования смен и закупок важнее понимать ошибку
+  в гостях (MAE) и в процентах (MAPE), а не долю объяснённой дисперсии.
 
 ---
 
